@@ -20,6 +20,7 @@ def write(username,passwd):
 	user.attrib["username"] = username 
 	user.attrib["password"] = passwd
 	file.write(prettify(users))
+	file.close()
 	
 def indent(elem, level=0):
     i = "\n" + level*"  "
@@ -46,14 +47,37 @@ def prettify(elem):
     return reparsed.toprettyxml(indent=" ")
 
 def login(request):
-    
-    return Response('<h>Login</h>')
+    tree = ElementTree.parse('user.xml')
+    root = tree.getroot()
+    o = urlparse(request.url)
+    query = parse_qs(o.query)
+    param1 = query.get('user')
+    param2 = query.get('pass')
+    username =  param1[0]
+    passwd =  param2[0]
+    res = False
+    for child in root:
+	if child.attrib['username'] == username:
+		if child.attrib['password'] == passwd:
+			res = True
+    if res:
+	return Response(getsuccess())
+    else:
+        return Response(getfailure())
+
+def getfailure():
+	with open('failure.json') as json_data:
+	    d = json.load(json_data)
+	    json_data.close()
+	    jsonString = json.dumps(d)
+	    return jsonString
 
 def getsuccess():
 	with open('success.json') as json_data:
 	    d = json.load(json_data)
 	    json_data.close()
-	    return d
+	    jsonString = json.dumps(d)
+	    return jsonString
 
 def register(request):
     o = urlparse(request.url)
@@ -63,11 +87,7 @@ def register(request):
     username =  param1[0]
     passwd =  param2[0]
     write(username,passwd)
-    with open('success.json') as json_data:
-	    d = json.load(json_data)
-	    json_data.close()
-	    jsonString = json.dumps(d)	
-    return Response(jsonString)
+    return Response(getsuccess())
 
 	
 
